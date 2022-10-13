@@ -155,7 +155,7 @@ function checkResult(method, strPrinterName, requestId, responseId, _callback) {
     }
 }
 
- function requestPrint(strPrinterName, strSubmit, _callback) {
+ function requestPrint(strPrinterName, strSubmit, _callback,cid) {
     _callback("");
     var serverURL = getServerURL().url;
     if (connectionMode == "ws:" || connectionMode == "wss:") {
@@ -181,15 +181,15 @@ function checkResult(method, strPrinterName, requestId, responseId, _callback) {
                     checkResult('POST', strPrinterName, res.RequestID, res.ResponseID, _callback);
                 }
                 else if (ret.search("duplicated") >= 0) {
-                    _callback(res.Result);
-                    alert("A nyomtatás sikeresen megtörtént!")
+                    _callback(res.Result,cid);
                 }
             }
             else if (xmlHttpReq.readyState == 4 && xmlHttpReq.status == 404) {
-                _callback("No printers");
+                    alert("A nyomtatás sikeresen megtörtént!")
+                _callback("No printers",cid);
             }
             else if (xmlHttpReq.readyState == 4) {
-                _callback("Cannot connect to server");
+                _callback("Cannot connect to server",cid);
 
             }
         }
