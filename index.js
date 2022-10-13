@@ -1,81 +1,100 @@
-const common=require("./untils/bxlcommon");
-const pos=require("./untils/bxlpos");
-const axios=require('axios')
-
-
+let data = [];
+let id;
+let main = document.getElementById("main");
 let LF = "\n";
 let issueID = 1;
 let p_result;
 let p_name = "Printer1";
-let data;
-let id;
 
-function viewResult(result,cid) {
-    p_result = result;
-    
-    if(p_result==='Cannot connect to server'){
-        console.log("\x1b[31m", p_result, "\x1b[0m")
-        console.log("\x1b[31m",`Nem sikerült ${cid} asztalt kinyomtatni`,"\x1b[0m");
+const print = () => {
+    setPosId(issueID);
+    setCharacterset(1250);
+    checkPrinterStatus();
+
+    function viewResult(result) {
+        p_result = result;
+        
+        if (p_result === 'Cannot connect to server') {
+
+            main.innerHTML += `<h4 style="color:red">${p_result}</h4>`
+            main.innerHTML += `<h5 style="color:red">Nem sikerült asztalt kinyomtatni</h5>`
+
+
+        }
+        else if (p_result === 'No printers') {
+            main.innerHTML += `<h4 style="color:red">${p_result}</h4>`
+            main.innerHTML += `<h5 style="color:red">Nem sikerült asztalt kinyomtatni</h5>`
+        }
+        else if (p_result === '') {
+
+        }
+        else {
          
-    }
-    else if(p_result==='No printers'){
-        console.log("\x1b[31m", p_result, "\x1b[0m")
-        console.log("\x1b[31m",`Nem sikerült ${cid} asztalt kinyomtatni`,"\x1b[0m");
-    }
-    else if(p_result===''){
-        
-    }
-    else{
-        console.log("\x1b[32m", `Sikeresen kinyomtatta ${cid} rendelést!`, "\x1b[0m")
-        
-    }
-}
-
-
-async function print() {
-    pos.setPosId(issueID);
-    pos.setCharacterset(1250);
-    pos.checkPrinterStatus();
-    await axios.get(`http://localhost:5500/printdata/cb`)
-        .then((response) => {
-            data = response.data;
-            console.log("------------------------------");
-            console.log("\x1b[32m", "Sikeres adatlekérdezés!", "\x1b[0m")
-        }).catch((error) => {
-            console.log("------------------------------");
-            console.log("\x1b[31m", "Sikertelen adatlekérdezés!", "\x1b[0m")
-            if (error) {
-                data = []
-            }
-        });
-    if (data.length !== 0) {
-        console.log("\x1b[36m", `Beérkezett ${data.length} adat!`, "\x1b[0m");
-        data.map((value) => {
-            pos.printText(value._id.replace(".", "/") + LF, 2, 2, true, false, false, 0, 1);
-            value.items.map((item) => {
-                pos.printText(item.count+" "+item.name,1, 2, true, false, false, 0, 1);
-                pos.printText(item.props+LF,1, 1.3, true, false, false, 0, 1);
-            })
-            pos.cutPaper(1);
-
-            var strSubmit = pos.getPosData();
+            main.innerHTML += `<h5 style="color:green">Sikeresen kinyomtattad asztalt! </h5>`
             
-           
-    
-            issueID++;
-           
+            for (let index = 0; index < data.length; index++) {
+                
+                fetch(`http://192.168.0.40:5500/delPrint/cb/${data[index]._id}`, {
+                method: 'DELETE',
+            })
+            }
+        }
+    }
 
-            common.requestPrint(p_name, strSubmit, viewResult,value._id);
-           
-        })
+    for (let index = 0; index < data.length; index++) {
+        printText("---------------------"+LF, 1, 1, true, false, false, 0,0);
 
+        printText(data[index]._id.replace(".", "/") + LF, 3, 3, true, false, false, 0, 1);
+        printText("---------------------"+LF, 1, 1, true, false, false, 0,0);
 
+        id = data[index]._id;
+        for (let item = 0; item < data[index].items.length; item++) {
+            printText(data[index].items[item].count + " " + data[index].items[item].name, 2, 2, true, false, false, 0, 0);
+            printText(data[index].items[item].props + LF, 1, 0, true, false, false, 0,0);
+            printText("---------------------"+LF, 1, 1, true, false, false, 0,0);
+
+        }
+        cutPaper(1);
        
-        return true;
 
     }
-    else {
-        console.log("\x1b[33m", "Nem érkezett be új adat!", "\x1b[0m");
-    }
+    var strSubmit = getPosData();
+    issueID++;
+    requestPrint(p_name, strSubmit, viewResult);
+    return true;
+
 }
-setInterval(print, 15000);
+
+
+
+const fetcher = async () => {
+    await fetch('http://192.168.0.40:5500/printdata/cb').then((response) => response.json()).then((log) => {
+        data = log;
+        main.innerHTML = `<h4 style="color:green">Adatok lekérése sikeres volt!</h4>`
+
+    })
+        .catch((error) => {
+            main.innerHTML = `<h4 style="color:red">Hiba a serverhez való kapcsolódásban!</h4>`
+
+        });
+
+    switch (data.length === 0 || data.length === undefined) {
+        case true:
+            main.innerHTML += `<h4 style="color:yellow">Nem érkezett be új adat!</h4>`
+
+            break;
+        case false:
+            main.innerHTML += `<h4 style="color:blue">Rendszerben tartott adatok száma: ${data.length}</h4>`
+            print();
+            break;
+        default:
+
+            break;
+    }
+
+};
+
+
+setInterval(fetcher, 15000);
+
+window.onload = fetcher

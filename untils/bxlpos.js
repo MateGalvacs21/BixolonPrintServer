@@ -122,4 +122,3 @@ function pagemodePrintArea(width, height) {
     incPosNum++;
 }
 
-module.exports={printText, setPosId, setCharacterset, checkPrinterStatus, cutPaper, getPosData }
